@@ -1,12 +1,16 @@
+
 import glob
+from time import time
 import re
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from nltk.corpus import stopwords
-from sklearn.base import TransformerMixin
+from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.metrics import roc_curve, precision_recall_curve, roc_auc_score, accuracy_score, confusion_matrix, \
     classification_report
@@ -16,17 +20,8 @@ pd.set_option('display.max_columns', None)
 
 # Import movie reviews and flag their respective sentiment
 
+# inputs={1:'negatives_list', 2:'positives_list', 3:'negatives_list_test', 4:'positives_list_test'}
 
-# def import_files(path_to_folder, list_name, sentiment):
-#     path = path_to_folder
-#     files = glob.glob(path)
-#     list_name = []
-#     for txt in files:
-#         f = open(txt, 'r')
-#         list_name.append((f.readlines()[0], sentiment))
-#         f.close()
-#
-# import_files('./inputs/neg/*.txt', 'negatives_list', 0)
 
 path = './inputs/neg/*.txt'
 files = glob.glob(path)
@@ -75,7 +70,7 @@ for i, name in enumerate(negatives_list_test + positives_list_test):
 
 
 # Create class to pre-process string
-class processStrig(TransformerMixin):
+class processStrig(BaseEstimator, TransformerMixin):
     def transform(self, X, **transform_params):
         # process the tweets
         # Import stemmer from NLTK
@@ -99,7 +94,6 @@ class processStrig(TransformerMixin):
         return self
 
 
-
 # Check Document-Term matrix in dense format
 # pd.DataFrame(features_train_.toarray(), columns=vectorizer.get_feature_names()).shape
 
@@ -107,8 +101,24 @@ class processStrig(TransformerMixin):
 pipeline = Pipeline([
     ('str_pre_proc', processStrig()),
     ('ngram', CountVectorizer(ngram_range=(1, 3), min_df=3)),
-    ('clf', MultinomialNB())
-])
+    ('estimator', MultinomialNB())
+    ])
+
+# # Setup the hyperparameter grid
+# param_grid = { 'estimator__alpha': [0.2, 0.4, 0.6, 0.8, 1] }
+#
+# grid = GridSearchCV(pipeline, param_grid=param_grid, cv=5, n_jobs=-1)
+#
+# start = time()
+# fitted_model = grid.fit(features_train, target_train)
+# end = time()
+# print 'GridSearch fitting time: ' + str(end-start)
+#
+# grid.best_params_
+# grid.best_score_
+#
+# target_predicted = grid.predict_proba(features_test)[:, 1]
+
 
 # train the classifier
 model = pipeline.fit(features_train, target_train)
@@ -147,3 +157,7 @@ plt.show()
 
 print("New model")
 print(classification_report(target_test, target_predicted_report))
+
+
+# Test 2 made-up exmaples
+model.predict_proba(["weird movie!!!","Love this movie!"])[:, 1]
